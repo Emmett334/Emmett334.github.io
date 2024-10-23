@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitch Details</title>
+    <style>
+        .blue {
+            color: #0C2340;
+        }
+        .red {
+            color: #BD1F2D;
+        }
+        th {
+            border-bottom: 1px solid gray;
+            font-weight: bold;
+            font-size: 1.2em;
+            cursor: pointer; /* Indicate sortable columns */
+        }
+        a {
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .sorted {
+            background-color: #e0e0e0; /* Highlight sorted column */
+        }
+    </style>
+</head>
+<body>
+    <h1>Pitch Details</h1>
+    <a href="index.html">Go back</a>
+    <h1 class="red">Trackman Pitch Stats Viewer</h1>
+    <form onsubmit="filterData(event);">
+        <label>Starting date</label>
+        <input type="date" id="startdate">
+        <label>End date</label>
+        <input type="date" id="enddate">
+        <button type="submit">Filter</button>
+    </form>
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">ID</th>
+                <th onclick="sortTable(1)">Speed</th>
+                <th onclick="sortTable(2)">Result</th>
+                <th onclick="sortTable(3)">Datetime</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be dynamically populated here -->
+        </tbody>
+    </table>
+
+    <script>
+        function filterData(event) {
+            event.preventDefault();
+            const startdate = document.getElementById("startdate").value;
+            const enddate = document.getElementById("enddate").value;
+            console.log("Start date: " + startdate);
+            console.log("End date: " + enddate);
+            fetchData(); // Fetch data after filtering
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch('https://compute.samford.edu/zohauth/clients/datajson');
+                const data = await response.json();
+
+                const tableBody = document.querySelector('#dataTable tbody');
+                tableBody.innerHTML = ''; // Clear previous data
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+
+                    // Create ID cell with link
+                    const idCell = document.createElement('td');
+                    const link = document.createElement('a');
+                    link.href = `details.html?id=${item.id}`; // Assuming ID is unique
+                    link.textContent = `Pitch ${item.id}`;
+                    idCell.appendChild(link);
+                    row.appendChild(idCell);
+
+                    // Create Speed cell
+                    const speedCell = document.createElement('td');
+                    speedCell.textContent = item.speed || '--';
+                    row.appendChild(speedCell);
+
+                    // Create Result cell
+                    const resultCell = document.createElement('td');
+                    resultCell.textContent = item.result || '--';
+                    row.appendChild(resultCell);
+
+                    // Create Datetime cell
+                    const datetimeCell = document.createElement('td');
+                    datetimeCell.textContent = item.datetime || '--';
+                    row.appendChild(datetimeCell);
+
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById("dataTable");
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.rows);
+            const isAscending = tbody.dataset.sortOrder === 'asc';
+            const directionModifier = isAscending ? 1 : -1;
+
+            rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].textContent.trim();
+                const bText = b.cells[columnIndex].textContent.trim();
+                return aText.localeCompare(bText, undefined, { numeric: true }) * directionModifier;
+            });
+
+            // Clear and re-add sorted rows
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.firstChild);
+            }
+            tbody.append(...rows);
+
+            // Update sort order and highlight the sorted column
+            tbody.dataset.sortOrder = isAscending ? 'desc' : 'asc';
+            const ths = table.querySelectorAll('th');
+            ths.forEach(th => th.classList.remove('sorted'));
+            ths[columnIndex].classList.add('sorted');
+        }
+
+        // Fetch data on page load
+        window.onload = fetchData;
+    </script>
+</body>
+</html>
